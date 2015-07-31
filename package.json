@@ -1,0 +1,19 @@
+{
+  "name": "arduinoserial",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "serialport='/dev/cu.usbmodem1411' host='localhost' port=8000 node server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "arest": "^0.2.5",
+    "express": "^4.13.1",
+    "hapi": "^8.8.0",
+    "request": "^2.60.0",
+    "serialport": "^1.7.4"
+  }
+}

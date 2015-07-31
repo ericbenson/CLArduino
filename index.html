@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+  <!-- Latest compiled and minified CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+
+  <!-- Optional theme -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+
+  <!-- Latest compiled and minified JavaScript -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+
+  <style>
+    .format {
+      height: 50px;
+      width: 50px;
+    }
+
+    .submit {
+      margin: 25px;
+      display: block;
+    }
+
+    .highlighted {
+      background-color: yellow;
+    }
+  </style>
+
+</head>
+
+<body>
+  <!-- <form>
+    <button type="submit" formmethod='GET' formaction="blue">Blue</button>
+    <button type="submit" formmethod='GET' formaction="green">Green</button>
+    <button type="submit" formmethod='GET' formaction="red">Red</button>
+    <button type="submit" formmethod='GET' formaction="rainbow">Rainbow</button>
+    <button type="submit" formmethod='GET' formaction="test">Test</button>
+  </form> -->
+  <button class="format" type="button" value=2></button>
+  <button class="format" type="button" value=3></button>
+  <button class="format" type="button" value=4></button>
+  <button class="format" type="button" value=5></button>
+  <button class="format" type="button" value=6></button>
+
+  <button class="submit">Submit</button>
+
+  <div class="dropdown">
+    <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+      Color
+      <span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+      <li><a class="color" >Red</a></li>
+      <li><a class="color" >Green</a></li>
+      <li><a class="color" >Blue</a></li>
+      <li><a class="color" >Rainbow</a></li>
+    </ul>
+  </div>
+
+  <script>
+    var num = 0;
+
+    $('.format').click(function() {
+      var clicked = $(this);
+      var exp = parseInt(clicked.attr('value'));
+      var val = Math.pow(2, exp);
+
+      if (clicked.hasClass('highlighted')) {
+        num -= val;
+      } else {
+        num += val;
+      }
+      clicked.toggleClass('highlighted');
+    });
+
+    $('.submit').click(function() {
+      $.post('/light', {
+        num: num
+      }, function(data) {
+        console.log(data);
+      })
+    });
+
+    $('.color').click(function(){
+      num >>=2;
+      num <<=2;
+      switch ($(this).text()){
+        case 'Red':
+          num +=0;
+          break;
+        case 'Green':
+          num +=1;
+          break;
+        case 'Blue':
+          num +=2;
+          break;
+        case 'Rainbow':
+          num +=3;
+          break;
+      }
+      $('.dropdown-toggle').text($(this).text());
+      console.log($(this).text());
+    })
+  </script>
+</body>
+
+</html>
