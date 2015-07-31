@@ -1,8 +1,8 @@
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_CC3000.h>
 #include <SPI.h>
-#include "utility/debug.h"
-#include "utility/socket.h"
+// #include "utility/debug.h"
+// #include "utility/socket.h"
 
 // These are the interrupt and control pins
 #define ADAFRUIT_CC3000_IRQ   3  // MUST be an interrupt pin!
@@ -32,13 +32,10 @@ Adafruit_CC3000_Server echoServer(LISTEN_PORT);
 //   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(3, PIN, NEO_RGB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(36, PIN, NEO_RGB + NEO_KHZ400);
 
-int num;
-char data[10];
-int event = 1;
-int index = 0;
-char* inputString;
+char data[3];
+byte index = 0;
 bool stringComplete = false;
 
 void setup(void)
@@ -46,7 +43,7 @@ void setup(void)
   Serial.begin(115200);
   Serial.println(F("Hello, CC3000!\n"));
 
-  Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
+  // Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
 
   /* Initialise the module */
   Serial.println(F("\nInitializing..."));
@@ -70,26 +67,25 @@ void setup(void)
     delay(100); // ToDo: Insert a DHCP timeout!
   }
 
-  /* Display the IP address DNS, Gateway, etc. */
-  while (! displayConnectionDetails()) {
-    delay(1000);
-  }
+  // /* Display the IP address DNS, Gateway, etc. */
+  // while (! displayConnectionDetails()) {
+  //   delay(1000);
+  // }
 
   /*********************************************************/
   /* You can safely remove this to save some flash memory! */
   /*********************************************************/
-  Serial.println(F("\r\nNOTE: This sketch may cause problems with other sketches"));
-  Serial.println(F("since the .disconnect() function is never called, so the"));
-  Serial.println(F("AP may refuse connection requests from the CC3000 until a"));
-  Serial.println(F("timeout period passes.  This is normal behaviour since"));
-  Serial.println(F("there isn't an obvious moment to disconnect with a server.\r\n"));
+  // Serial.println(F("\r\nNOTE: This sketch may cause problems with other sketches"));
+  // Serial.println(F("since the .disconnect() function is never called, so the"));
+  // Serial.println(F("AP may refuse connection requests from the CC3000 until a"));
+  // Serial.println(F("timeout period passes.  This is normal behaviour since"));
+  // Serial.println(F("there isn't an obvious moment to disconnect with a server.\r\n"));
 
   // Start listening for connections
   echoServer.begin();
 
   Serial.println(F("Listening for connections..."));
 
-  inputString = (char*)malloc(10 * sizeof(char));
   strip.begin();
   strip.show();
   randomSeed(analogRead(0));
@@ -99,26 +95,28 @@ void loop(void)
 {
   wirelessEvent();
   if (stringComplete) {
-        Serial.println(inputString);
-        char c;
-        int number;
-        sscanf(inputString, "%c%d", &c, &number);
-        if (c == 'S') show(number);
-        else {
-            for(int i = 0; i < 8; i++) {
-                strip.setPixelColor(i, strip.Color(0, 0, 0));
-            }
-            if (data[0] == 'R') strip.setPixelColor(1, strip.Color(1, 0, 255));
-            if (data[0] == 'E') strip.setPixelColor(2, strip.Color(1, 0, 255));
-            if (data[0] == 'V') strip.setPixelColor(6, strip.Color(0, 0, 255));
-            showPercentage(0, 3, 1, number);
-        }
-        stringComplete = false;
-        index = 0;
+    byte number = (data[1]-48)*10 +(data[2]-48);
+
+    if (data[0] == 'S') show(data[1]-48);
+    else {
+      for(byte i = 0; i < 36; i++) {
+          strip.setPixelColor(i, strip.Color(0, 0, 0));
+      }
+      if (data[0] == 'R') lightBox(1, strip.Color(0,100,100));
+      if (data[0] == 'E') lightBox(2, strip.Color(0,0,255));
+      if (data[0] == 'V') lightBox(6, strip.Color(150,200,75));
+      showPercentage(8, 12, 3, number);
     }
-    ////  showPercentage(0, 3, 3, 0);
+    stringComplete = false;
+    index = 0;
+  }
+}
 
-
+void lightBox(byte start, uint32_t c){
+  for(byte i=0; i<3; i++){
+    strip.setPixelColor((start*3)+i, c);
+  }
+  strip.show();
 }
 
 void wirelessEvent(){
@@ -126,44 +124,77 @@ void wirelessEvent(){
   Adafruit_CC3000_ClientRef client = echoServer.available();
   if (client) {
      // Check if there is data available to read.
-     while(client.available()) {
-       char inChar = (char)client.read();
+     if(client.available()>0) {
+       char inChar = client.read();
+       client.write(inChar);
+       data[index++]=inChar;
 
-       inputString[index++]=inChar;
-
-       if(inChar=='/n'){
+       if(inChar=='\n'){
          stringComplete=true;
        }
      }
   }
 }
 
-void show(int wait) {
+void show(byte wait) {
+  Serial.println('s');
+  for(byte i=0; i<12; i++){
+    for(byte j=0; j<3; j++){
+      byte ran1 = random(255);
+      byte ran2 = random(255);
+      byte ran3 = random(255);
+      strip.setPixelColor((i*3)+j, strip.Color(ran1,ran2,ran3));
+      strip.show();
+    }
+    delay(20);
+    strip.setPixelColor(i,strip.Color(0,0,0));
+  }
 
+  uint16_t i, j;
+
+  for(j=0; j<256; j++) {
+    for(i=0; i<strip.numPixels(); i++) {
+      strip.setPixelColor(i, Wheel((i+j) & 255));
+    }
+    strip.show();
+    delay(2);
+  }
 }
 
 //bottom line start = 8, endd = 12, groupSize should equal to 3, and num is the percentage
-void showPercentage(int start, int endd, int groupSize, double num) {
-
-    double light = (endd - start) * (num / 100);
-    for(int i = start; i < endd; i++) {
+void showPercentage(byte start, byte endd, byte groupSize, byte num) {
+    double light = (endd - start) * (num / 100.0);
+    for(byte i = start; i < endd; i++) {
         if (light > 1) {
-            for(int j = 0; j < groupSize; j++)
+            for(byte j = 0; j < groupSize; j++)
                 strip.setPixelColor(i * groupSize + j, strip.Color(0, 255, 0));
             light -= 1;
             continue;
         }
         if (abs(light) < 0.00000001) {
-            for(int j = 0; j < groupSize; j++)
+            for(byte j = 0; j < groupSize; j++)
                 strip.setPixelColor(i * groupSize + j, strip.Color(255, 0, 0));
 
             continue;
         }
-        for(int j = 0; j < groupSize; j++)
+        for(byte j = 0; j < groupSize; j++)
             strip.setPixelColor(i * groupSize + j, strip.Color(255 * (1 - light), 255 * light ,0));
         light = 0;
     }
     strip.show();
+}
+
+uint32_t Wheel(byte WheelPos) {
+  WheelPos = 255 - WheelPos;
+  if(WheelPos < 85) {
+    return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  }
+  if(WheelPos < 170) {
+    WheelPos -= 85;
+    return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+  WheelPos -= 170;
+  return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
 }
 
 /**************************************************************************/
@@ -171,23 +202,23 @@ void showPercentage(int start, int endd, int groupSize, double num) {
     @brief  Tries to read the IP address and other connection details
 */
 /**************************************************************************/
-bool displayConnectionDetails(void)
-{
-  uint32_t ipAddress, netmask, gateway, dhcpserv, dnsserv;
-
-  if(!cc3000.getIPAddress(&ipAddress, &netmask, &gateway, &dhcpserv, &dnsserv))
-  {
-    Serial.println(F("Unable to retrieve the IP Address!\r\n"));
-    return false;
-  }
-  else
-  {
-    Serial.print(F("\nIP Addr: ")); cc3000.printIPdotsRev(ipAddress);
-    Serial.print(F("\nNetmask: ")); cc3000.printIPdotsRev(netmask);
-    Serial.print(F("\nGateway: ")); cc3000.printIPdotsRev(gateway);
-    Serial.print(F("\nDHCPsrv: ")); cc3000.printIPdotsRev(dhcpserv);
-    Serial.print(F("\nDNSserv: ")); cc3000.printIPdotsRev(dnsserv);
-    Serial.println();
-    return true;
-  }
-}
+// bool displayConnectionDetails(void)
+// {
+//   uint32_t ipAddress, netmask, gateway, dhcpserv, dnsserv;
+//
+//   if(!cc3000.getIPAddress(&ipAddress, &netmask, &gateway, &dhcpserv, &dnsserv))
+//   {
+//     Serial.println(F("Unable to retrieve the IP Address!\r\n"));
+//     return false;
+//   }
+//   else
+//   {
+//     Serial.print(F("\nIP Addr: ")); cc3000.printIPdotsRev(ipAddress);
+//     Serial.print(F("\nNetmask: ")); cc3000.printIPdotsRev(netmask);
+//     Serial.print(F("\nGateway: ")); cc3000.printIPdotsRev(gateway);
+//     Serial.print(F("\nDHCPsrv: ")); cc3000.printIPdotsRev(dhcpserv);
+//     Serial.print(F("\nDNSserv: ")); cc3000.printIPdotsRev(dnsserv);
+//     Serial.println();
+//     return true;
+//   }
+// }
